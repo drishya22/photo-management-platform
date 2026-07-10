@@ -1,9 +1,11 @@
 from fastapi import FastAPI,UploadFile,File,HTTPException
+from fastapi.responses import FileResponse
 import os
 from app.utils.hash_utils import generate_hash
 from app.utils.metadata_utils import load_metadata,save_metadata
 from app.services.embedding_service import get_image_embedding,get_text_embedding
 from app.services.vector_db import add_embedding,search_embeddings
+
 
 app=FastAPI(title="Photo Management Platform")
 
@@ -69,4 +71,47 @@ def search_images(query: str):
         embedding=query_embeddings,
         top_k=5
     )
-    return results
+    formatted_results=[]
+    documents=results["documents"][0]
+    distances=results["distances"][0]
+
+    for filename,distance in zip(documents,distances):
+        formatted_results.append({
+            "filename":filename,
+            "distance":round(distance,4),
+            "image_url":f"/image/{filename}"
+        })
+    return {
+        "query":query,
+        "results":formatted_results
+    }
+
+@app.get("/images/{filename}")
+def get_image(filename:str):
+    file_path=os.path.join(
+        UPLOAD_FOLDER,
+        filename
+    )
+    if not os.path.exists(file_path):
+        raise HTTPException(
+            status_code=404,
+            detail="Image not found"
+        )
+    return FileResponse(file_path)
+
+@app.get("/images")
+def list_images():
+    metadata=load_metadata()
+    images=[]
+    for image in metadata:
+        images.append(
+            {
+                "filename":image["filename"],
+                "file_type":image["file_type"],
+                "image_url":f"/images/{image["filename"]}"
+            }
+        )
+    return {
+        "total_images":len(images),
+        "images":images
+    }
