@@ -14,7 +14,8 @@ def add_embedding(image_id,embedding,filename):
         embeddings=[embedding],
         metadatas=[{
             "filename":filename
-        }]
+        }],
+        documents=[filename]
     )
 
 def search_embeddings(embedding,top_k=5):

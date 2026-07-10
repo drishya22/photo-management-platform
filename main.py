@@ -1,7 +1,9 @@
 from fastapi import FastAPI,UploadFile,File,HTTPException
 import os
 from app.utils.hash_utils import generate_hash
-from app.utils.metadata_utils import load_metadata,save_metadata 
+from app.utils.metadata_utils import load_metadata,save_metadata
+from app.services.embedding_service import get_image_embedding
+from app.services.vector_db import add_embedding
 
 app=FastAPI(title="Photo Management Platform")
 
@@ -39,6 +41,13 @@ async def upload_image(file: UploadFile=File(...)):
     with open(file_path,"wb") as buffer:
         buffer.write(file_bytes)
     
+    embedding=get_image_embedding(file_path)
+
+    add_embedding(
+        image_id=image_hash,
+        embedding=embedding,
+        filename=file.filename
+    )
     metadata.append({
         "filename":file.filename,
         "hash":image_hash,
