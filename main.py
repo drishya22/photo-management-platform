@@ -2,8 +2,8 @@ from fastapi import FastAPI,UploadFile,File,HTTPException
 import os
 from app.utils.hash_utils import generate_hash
 from app.utils.metadata_utils import load_metadata,save_metadata
-from app.services.embedding_service import get_image_embedding
-from app.services.vector_db import add_embedding
+from app.services.embedding_service import get_image_embedding,get_text_embedding
+from app.services.vector_db import add_embedding,search_embeddings
 
 app=FastAPI(title="Photo Management Platform")
 
@@ -61,3 +61,12 @@ async def upload_image(file: UploadFile=File(...)):
         "file_type": extension,
         "hash":image_hash
     }
+
+@app.get("/search")
+def search_images(query: str):
+    query_embeddings=get_text_embedding(query)
+    results=search_embeddings(
+        embedding=query_embeddings,
+        top_k=5
+    )
+    return results
