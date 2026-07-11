@@ -4,7 +4,8 @@ import os
 from app.utils.hash_utils import generate_hash
 from app.utils.metadata_utils import load_metadata,save_metadata
 from app.services.embedding_service import get_image_embedding,get_text_embedding
-from app.services.vector_db import add_embedding,search_embeddings
+from app.services.vector_db import add_embedding,search_embeddings, delete_embedding
+from app.services.category_service import classify_image
 
 
 app=FastAPI(title="Photo Management Platform")
@@ -44,6 +45,7 @@ async def upload_image(file: UploadFile=File(...)):
         buffer.write(file_bytes)
     
     embedding=get_image_embedding(file_path)
+    classification=classify_image(file_path)
 
     add_embedding(
         image_id=image_hash,
@@ -53,7 +55,8 @@ async def upload_image(file: UploadFile=File(...)):
     metadata.append({
         "filename":file.filename,
         "hash":image_hash,
-        "file_type":extension
+        "file_type":extension,
+        "category":classification["category"] 
     })
     save_metadata(metadata)
     return {
@@ -61,7 +64,8 @@ async def upload_image(file: UploadFile=File(...)):
         "filename":file.filename,
         "saved_to":file_path,
         "file_type": extension,
-        "hash":image_hash
+        "hash":image_hash,
+        "category": classification["category"]
     }
 
 @app.get("/search")
@@ -79,7 +83,7 @@ def search_images(query: str):
         formatted_results.append({
             "filename":filename,
             "distance":round(distance,4),
-            "image_url":f"/image/{filename}"
+            "image_url":f"/images/{filename}"
         })
     return {
         "query":query,
@@ -108,10 +112,39 @@ def list_images():
             {
                 "filename":image["filename"],
                 "file_type":image["file_type"],
-                "image_url":f"/images/{image["filename"]}"
+                "image_url":f"/images/{image['filename']}",
+                "category":image.get("category","unknown")
             }
         )
     return {
         "total_images":len(images),
         "images":images
+    }
+
+@app.delete("/images/{filename}")
+def delete_image(filename: str):
+    metadata=load_metadata()
+    image_to_delete=None
+
+    for image in metadata:
+        if image["filename"]==filename:
+            image_to_delete=image
+            break
+
+    if image_to_delete is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Image not found"
+        )
+    file_path=os.path.join(UPLOAD_FOLDER,filename)
+    if os.path.exists(file_path):
+        os.remove(file_path)
+    
+    # Clean database records even if file was already missing
+    delete_embedding(image_to_delete["hash"])
+    metadata.remove(image_to_delete)
+    save_metadata(metadata)
+
+    return {
+        "message": f"{filename} deleted successfully"
     }

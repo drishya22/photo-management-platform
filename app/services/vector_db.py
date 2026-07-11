@@ -24,3 +24,7 @@ def search_embeddings(embedding,top_k=5):
         n_results=top_k
     )
     return results
+
+
+def delete_embedding(image_id):
+    collection.delete(ids=[image_id])
