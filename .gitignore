@@ -13,4 +13,3 @@ data/image_metadata.json
 .vscode/
 
 secrets/*.json
-client_secret.json
