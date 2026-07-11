@@ -4,8 +4,10 @@ import os
 from app.utils.hash_utils import generate_hash
 from app.utils.metadata_utils import load_metadata,save_metadata
 from app.services.embedding_service import get_image_embedding,get_text_embedding
-from app.services.vector_db import add_embedding,search_embeddings, delete_embedding
+from app.services.vector_db import add_embedding,search_embeddings, delete_embedding, find_similar_images
 from app.services.category_service import classify_image
+from app.services.face_service import group_face
+from app.utils.face_utils import load_faces
 
 
 app=FastAPI(title="Photo Management Platform")
@@ -45,7 +47,19 @@ async def upload_image(file: UploadFile=File(...)):
         buffer.write(file_bytes)
     
     embedding=get_image_embedding(file_path)
+    similar_images=find_similar_images(embedding,top_k=1)
+    if len(similar_images["distances"][0])>0:
+        distance=similar_images["distances"][0][0]
+        if distance<0.20:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            return {
+                "is_near_duplicate":True,
+                "distance": round(distance,4),
+                "message":"Near duplicate image detected"
+            }
     classification=classify_image(file_path)
+    person_id=group_face(file_path,file.filename)
 
     add_embedding(
         image_id=image_hash,
@@ -65,7 +79,8 @@ async def upload_image(file: UploadFile=File(...)):
         "saved_to":file_path,
         "file_type": extension,
         "hash":image_hash,
-        "category": classification["category"]
+        "category": classification["category"],
+        "person_id":person_id
     }
 
 @app.get("/search")
@@ -148,3 +163,7 @@ def delete_image(filename: str):
     return {
         "message": f"{filename} deleted successfully"
     }
+
+@app.get("/faces")
+def get_face_groups():
+    return load_faces()

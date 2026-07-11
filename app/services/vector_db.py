@@ -28,3 +28,8 @@ def search_embeddings(embedding,top_k=5):
 
 def delete_embedding(image_id):
     collection.delete(ids=[image_id])
+
+def find_similar_images(embedding, top_k=1):
+    results=collection.query(query_embeddings=[embedding], n_results=top_k)
+    return results
+
