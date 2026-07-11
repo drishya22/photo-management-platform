@@ -11,3 +11,6 @@ data/image_metadata.json
 
 .idea/
 .vscode/
+
+secrets/*.json
+client_secret.json
