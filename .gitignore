@@ -6,6 +6,7 @@ uploads/
 chroma_db/
 
 data/image_metadata.json
+data/faces.json
 
 .env
 
