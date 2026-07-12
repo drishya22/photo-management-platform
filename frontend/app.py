@@ -221,7 +221,15 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-tab1, tab2, tab3, tab4 = st.tabs(["⬆️ Upload", "🔍 Search", "🖼️ Gallery", "🧑‍🤝‍🧑 Faces"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(
+    [
+        "⬆️ Upload",
+        "🔍 Search",
+        "🖼️ Gallery",
+        "🧑‍🤝‍🧑 Faces",
+        "☁️ Google Photos"
+    ]
+)
 
 # ======================
 # UPLOAD
@@ -411,3 +419,82 @@ st.divider()
 st.caption(
     "AI Photo Management Platform • Semantic Search • Face Grouping • Duplicate Detection • FastAPI + Streamlit"
 )
+
+# ======================
+# GOOGLE PHOTOS
+# ======================
+
+with tab5:
+
+    st.subheader("Google Photos Integration")
+
+    st.write(
+        "Connect your Google Photos account "
+        "to import photos into the platform."
+    )
+
+    if st.button("Check Connection Status"):
+
+        response = requests.get(
+            f"{BASE_URL}/google-photos/status"
+        )
+
+        st.json(response.json())
+
+    st.markdown(
+        f"""
+        <a href="{BASE_URL}/google-photos/connect"
+           target="_blank">
+            <button style="
+                padding:10px;
+                font-size:16px;
+                cursor:pointer;">
+                Connect Google Photos
+            </button>
+        </a>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.markdown("---")
+
+    session_id = st.text_input(
+        "Google Photos Session ID"
+    )
+
+    if st.button("Load Selected Photos"):
+
+        response = requests.get(
+            f"{BASE_URL}/google-photos/media-items/{session_id}"
+        )
+
+        data = response.json()
+
+        media_items = data.get("mediaItems", [])
+
+        if len(media_items) == 0:
+            st.warning("No photos found")
+        else:
+
+            st.success(
+                f"Found {len(media_items)} selected photos"
+            )
+
+            for item in media_items:
+
+                file_info = item["mediaFile"]
+
+                st.image(
+                    file_info["baseUrl"],
+                    width=250
+                )
+
+                st.write(
+                    f"📸 {file_info['filename']}"
+                )
+
+                st.caption(
+                    f"{file_info['mimeType']}"
+                )
+
+                st.divider()

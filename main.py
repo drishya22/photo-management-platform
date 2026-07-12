@@ -8,6 +8,9 @@ from app.services.vector_db import add_embedding,search_embeddings, delete_embed
 from app.services.category_service import classify_image
 from app.services.face_service import group_face
 from app.utils.face_utils import load_faces
+from fastapi.responses import RedirectResponse
+from app.services.google_photos_service import create_flow, create_picker_session, get_session, list_media_items
+import requests
 
 
 app=FastAPI(title="Photo Management Platform")
@@ -167,3 +170,80 @@ def delete_image(filename: str):
 @app.get("/faces")
 def get_face_groups():
     return load_faces()
+
+google_flow = None
+google_credentials=None
+
+@app.get("/google-photos/connect")
+def google_photos_connect():
+    global google_flow
+
+    google_flow = create_flow()
+
+    auth_url, state = google_flow.authorization_url(
+        access_type="offline"
+    )
+
+    return RedirectResponse(auth_url)
+
+
+
+@app.get("/auth/callback")
+def auth_callback(code: str):
+    global google_flow
+    global google_credentials
+
+    google_flow.fetch_token(code=code)
+
+    credentials = google_flow.credentials
+    google_credentials=credentials
+
+    return {
+        "message": "Google Photos authentication successful",
+        "token_available": credentials.token is not None,
+        "token_type": credentials.token[:20]
+    }
+
+@app.get("/google-photos/status")
+def google_photos_status():
+    return {
+        "connected": True,
+        "provider": "Google Photos"
+    }
+
+@app.get("/google-photos/create-session")
+def create_google_photos_session():
+
+    global google_credentials
+
+    if google_credentials is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Please connect Google Photos first"
+        )
+
+    session = create_picker_session(
+        google_credentials.token
+    )
+
+    return session
+
+@app.get("/google-photos/session/{session_id}")
+def get_google_session(session_id: str):
+
+    global google_credentials
+
+    return get_session(
+        google_credentials.token,
+        session_id
+    )
+
+@app.get("/google-photos/media-items/{session_id}")
+def get_media_items(session_id: str):
+
+    global google_credentials
+
+    return list_media_items(
+        google_credentials.token,
+        session_id
+    )
