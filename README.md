@@ -58,7 +58,7 @@ Duplicate Check      ChromaDB Vector DB      Face Groups
 
 ### Clone
 
-git clone <repo>
+git clone https://github.com/drishya22/photo-management-platform.git
 
 ### Create Environment
 
@@ -102,10 +102,10 @@ GET /google-photos/status
 
 ## Tech Stack
 
-FastAPI
-Streamlit
-ChromaDB
-CLIP
-Face Recognition
-Google Photos Picker API
-Docker
+#### FastAPI
+#### Streamlit
+#### ChromaDB
+#### CLIP
+#### Face Recognition
+#### Google Photos Picker API
+#### Docker
